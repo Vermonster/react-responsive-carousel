@@ -1,4 +1,4 @@
-# React Responsive Carousel (WIP)
+# React Responsive Carousel
 
 ## Demo
 <http://leandrowd.github.io/react-responsive-carousel/>
@@ -22,11 +22,6 @@ To run it on your local environment just:
 - `npm install`
 - `gulp`
 - Open your favourite browser on `localhost:8000`
-
-## Generating the package for npm
-- `npm run build`
-- `cd lib`
-- `npm version patch && npm publish`
 
 To generate the npm package run `gulp package`. It will transpile the jsx to js and copy the css into the lib folder.
 
@@ -77,3 +72,15 @@ ReactDOM.render(<DemoCarousel />, document.querySelector('.demo-carousel'));
 - (Function) onChange (Triggered when the carousel move)
 - (Function) onClickItem (Triggered when an item is clicked)
 - (Function) onClickThumb (Triggered when a thumb is clicked)
+
+
+## Last update:
+- Adding free children;
+- Adding vertical carousel;
+- Adding free legend;
+- Fixing problem with has3d being called before body was available;
+- Updating to use ref callbacks;
+- Renaming callbacks;
+- Extracting swiper component;
+- Extracting thumbs;
+- Improving styles;
