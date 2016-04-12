@@ -56,23 +56,15 @@ module.exports = React.createClass({
         }
     },
 
-    componentWillMount() {
-        // as the widths are calculated, we need to resize 
-        // the carousel when the window is resized
-        window.addEventListener("resize", this.updateSizes);
-        // issue #2 - image loading smaller
-        window.addEventListener("DOMContentLoaded", this.updateSizes);
-    },
-
     componentWillUnmount() {
         // removing listeners
         window.removeEventListener("resize", this.updateSizes);
-        window.removeEventListener("DOMContentLoaded", this.updateSizes);
     },
 
     componentDidMount (nextProps) {
-        // when the component is rendered we need to calculate 
-        // the container size to adjust the responsive behaviour
+        // as the widths are calculated, we need to resize
+        // the carousel when the window is resized
+        window.addEventListener("resize", this.updateSizes);
         this.updateSizes();
 
         this.isHorizontal = this.props.axis === 'horizontal';
