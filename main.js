@@ -18,7 +18,7 @@ function onClickThumb() {
 var DemoCarousel = React.createClass({displayName: "DemoCarousel",
     render:function() {
         return (
-            React.createElement(Carousel, {showArrows: true, onChange: onChange, onClickItem: onClickItem, onClickThumb: onClickThumb}, 
+            React.createElement(Carousel, {showArrows: true, onChange: onChange, onClickItem: onClickItem, onClickThumb: onClickThumb, autoAdvanceTime: 2000}, 
                 React.createElement("div", null, 
                     React.createElement("img", {src: "assets/1.jpeg"}), 
                     React.createElement("p", {className: "legend"}, "Legend 1")

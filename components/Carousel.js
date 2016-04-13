@@ -15,7 +15,9 @@ module.exports = React.createClass({
         children: React.PropTypes.node.isRequired,
         showArrows: React.PropTypes.bool,
         showStatus: React.PropTypes.bool,
+        autoAdvanceTime: React.PropTypes.number,
         showIndicators: React.PropTypes.bool,
+        infiniteLoop: React.PropTypes.bool,
         showThumbs: React.PropTypes.bool,
         selectedItem: React.PropTypes.number,
         onClickItem: React.PropTypes.func,
@@ -29,11 +31,13 @@ module.exports = React.createClass({
             showIndicators: true,
             showArrows: true,
             showStatus:true,
+            autoAdvanceTime: null,
+            infiniteLoop: false,
             showThumbs:true,
             selectedItem: 0,
             axis: 'horizontal'
         }
-    }, 
+    },
 
     getInitialState:function () {
         return {
@@ -41,7 +45,7 @@ module.exports = React.createClass({
             selectedItem: this.props.selectedItem,
             hasMount: false
         }
-    }, 
+    },
 
     componentWillReceiveProps:function (props, state) {
         if (props.selectedItem !== this.state.selectedItem) {
@@ -52,14 +56,6 @@ module.exports = React.createClass({
         }
     },
 
-    componentWillMount:function() {
-        // as the widths are calculated, we need to resize 
-        // the carousel when the window is resized
-        window.addEventListener("resize", this.updateSizes);
-        // issue #2 - image loading smaller
-        window.addEventListener("DOMContentLoaded", this.updateSizes);
-    },
-
     componentWillUnmount:function() {
         // removing listeners
         window.removeEventListener("resize", this.updateSizes);
@@ -67,14 +63,42 @@ module.exports = React.createClass({
     },
 
     componentDidMount:function (nextProps) {
-        // when the component is rendered we need to calculate 
+        // as the widths are calculated, we need to resize
+        // the carousel when the window is resized
+        window.addEventListener("resize", this.updateSizes);
+        // issue #2 - image loading smaller
+        window.addEventListener("DOMContentLoaded", this.updateSizes);
+
+        // when the component is rendered we need to calculate
         // the container size to adjust the responsive behaviour
         this.updateSizes();
 
         this.isHorizontal = this.props.axis === 'horizontal';
-        
+
         var defaultImg = ReactDOM.findDOMNode(this.item0).getElementsByTagName('img')[0];
         defaultImg.addEventListener('load', this.setMountState);
+
+        //auto-advance
+        if(this.props.autoAdvanceTime) {
+            this._idleStart =  new Date();
+            this._idleTimer = setInterval(this.handleAutoAdvance, 250);
+        }
+    },
+
+    componentWillUnmount:function() {
+        clearInterval(this._idleTimer);
+    },
+
+    handleAutoAdvance:function() {
+        if((new Date() - this._idleStart) > this.props.autoAdvanceTime) {
+            //autoAdvance wraps
+            var newPosition = this.state.selectedItem + 1;
+            this.moveTo(newPosition >= this.props.children.length ?  0 : newPosition);
+        }
+    },
+
+    resetIdleTime:function(){
+      this._idleStart = new Date();
     },
 
     updateSizes:function () {
@@ -94,22 +118,22 @@ module.exports = React.createClass({
 
         if (typeof handler === 'function') {
             handler(index, item);
-        }   
+        }
 
         if (index !== this.state.selectedItem) {
             this.setState({
                 selectedItem: index,
             });
         }
-    }, 
+    },
 
     handleOnChange:function (index, item) {
         var handler = this.props.onChange;
 
         if (typeof handler === 'function') {
             handler(index, item);
-        }   
-    }, 
+        }
+    },
 
     handleClickThumb:function(index, item) {
         var handler = this.props.onClickThumb;
@@ -138,10 +162,10 @@ module.exports = React.createClass({
     onSwipeMove:function(delta) {
         var list = ReactDOM.findDOMNode(this.itemList);
         var isHorizontal = this.props.axis === 'horizontal';
-        
+
         var initialBoundry = 0;
 
-        var currentPosition = - this.state.selectedItem * 100; 
+        var currentPosition = - this.state.selectedItem * 100;
         var finalBoundry = - (this.props.children.length - 1) * 100;
 
         var axisDelta = isHorizontal ? delta.x : delta.y;
@@ -150,14 +174,14 @@ module.exports = React.createClass({
         if (currentPosition === initialBoundry && axisDelta > 0) {
             axisDelta = 0;
         }
-        
+
         // prevent user from swiping right out of boundaries
         if (currentPosition === finalBoundry && axisDelta < 0) {
             axisDelta = 0;
         }
 
         var position = currentPosition + (100 / (this.wrapperSize / axisDelta)) + '%';
-        
+
         [
             'WebkitTransform',
             'MozTransform',
@@ -179,15 +203,21 @@ module.exports = React.createClass({
     },
 
     moveTo:function (position) {
-        // position can't be lower than 0
-        position = position < 0 ? 0 : position;
-        // position can't be higher than last postion
-        position = position >= this.props.children.length - 1 ? this.props.children.length - 1 : position;
-        
+        var lastPosition = this.props.children.length  - 1;
+
+        if (position < 0 ) {
+          position = this.props.infiniteLoop ?  lastPosition : 0;
+        }
+
+        if (position > lastPosition ) {
+          position = this.props.infiniteLoop ? 0 : lastPosition;
+        }
+
         this.selectItem({
             // if it's not a slider, we don't need to set position here
             selectedItem: position
         });
+        this.resetIdleTime();
     },
 
     changeItem:function (e) {
@@ -197,7 +227,7 @@ module.exports = React.createClass({
             selectedItem: newIndex
         });
     },
-    
+
     selectItem:function (state) {
         this.setState(state);
         this.handleOnChange(state.selectedItem, this.props.children[state.selectedItem]);
@@ -207,7 +237,7 @@ module.exports = React.createClass({
         return React.Children.map(this.props.children, function(item, index)  {
             var hasMount = this.state.hasMount;
             var itemClass = klass.ITEM(true, index === this.state.selectedItem);
-            
+
             return (
                 React.createElement("li", {ref: function(node)  {return this["item" + index] = node;}.bind(this), key: "itemKey" + index, className: itemClass, 
                     onClick:  this.handleClickItem.bind(this, index, item) }, 
@@ -221,9 +251,9 @@ module.exports = React.createClass({
         if (!this.props.showIndicators) {
             return null
         }
-        
+
         return (
-            React.createElement("ul", {className: "control-dots"}, 
+            React.createElement("ul", {className: "control-dots", onClick: this.props.autoAdvanceTime ? this.resetIdleTime : null}, 
                 React.Children.map(this.props.children, function(item, index)  {
                     return React.createElement("li", {className: klass.DOT(index === this.state.selectedItem), onClick: this.changeItem, value: index, key: index});
                 }.bind(this))
@@ -237,7 +267,7 @@ module.exports = React.createClass({
         }
 
         return React.createElement("p", {className: "carousel-status"}, this.state.selectedItem + 1, " of ", this.props.children.length);
-    }, 
+    },
 
     renderThumbs:function () {
         if (!this.props.showThumbs) {
@@ -245,11 +275,13 @@ module.exports = React.createClass({
         }
 
         return (
-            React.createElement(Thumbs, {onSelectItem: this.handleClickThumb, selectedItem: this.state.selectedItem}, 
-                this.props.children
+            React.createElement("div", {onClick: this.props.autoAdvanceTime ? this.resetIdleTime : null}, 
+              React.createElement(Thumbs, {onSelectItem: this.handleClickThumb, selectedItem: this.state.selectedItem}, 
+                  this.props.children
+              )
             )
         );
-    }, 
+    },
 
     render:function () {
         var itemsLength = this.props.children.length;
@@ -260,18 +292,19 @@ module.exports = React.createClass({
 
         var canShowArrows = this.props.showArrows && itemsLength > 1;
 
-        // show left arrow? 
-        var hasPrev = canShowArrows && this.state.selectedItem > 0;
+        // show left arrow?
+        var hasPrev = canShowArrows && this.state.selectedItem > 0 || this.props.infiniteLoop;
+
         // show right arrow
-        var hasNext = canShowArrows && this.state.selectedItem < itemsLength - 1;
+        var hasNext = canShowArrows && this.state.selectedItem < itemsLength - 1 || this.props.infiniteLoop;
         // obj to hold the transformations and styles
         var itemListStyles = {};
 
-        var currentPosition = - this.state.selectedItem * 100 + '%';   
-        
+        var currentPosition = - this.state.selectedItem * 100 + '%';
+
         // if 3d is available, let's take advantage of the performance of transform
         var transformProp = CSSTranslate(currentPosition, this.props.axis);
-        
+
         itemListStyles = {
             'WebkitTransform': transformProp,
                'MozTransform': transformProp,
@@ -318,14 +351,14 @@ module.exports = React.createClass({
                         )
                     ), 
                     React.createElement("button", {className: klass.ARROW_NEXT(!hasNext), onClick: this.increment}), 
-                    
+
                      this.renderControls(), 
                      this.renderStatus() 
                 ), 
                  this.renderThumbs() 
-            )               
+            )
         );
-        
+
     }
 });
 
